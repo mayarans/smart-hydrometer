@@ -37,3 +37,9 @@ build/
 mosquitto/data/
 mosquitto/log/
 elasticsearch/data/
+
+
+### Igonora .venv ###
+.venv/
+__pycache__/
+*.py[cod]
