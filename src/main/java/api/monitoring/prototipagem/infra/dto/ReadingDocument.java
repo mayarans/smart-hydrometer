@@ -6,7 +6,9 @@ import org.springframework.data.elasticsearch.annotations.Document;
 import org.springframework.data.elasticsearch.annotations.Field;
 import org.springframework.data.elasticsearch.annotations.FieldType;
 
+import api.monitoring.prototipagem.model.ReadingData;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 @Document(indexName = "sensor_readings")
 public class ReadingDocument {
@@ -94,4 +96,14 @@ public class ReadingDocument {
     private record FlowPart (Double value){}
     private record LevelSensorPart(Boolean waterDetected) {}
     private record ValvePart(String state){}
+
+    public ReadingData toReadingData() {
+        return ReadingData.aReadingData()
+                .withMicrocontrollerId(this.microcontroller.id)
+                .withFlowReading(this.flow.value)
+                .withValveState(this.valve.state.equalsIgnoreCase("OPEN"))
+                .withWaterDetected(this.levelSensor.waterDetected)
+                .withTimestamp(this.timestamp.atZone(ZoneId.systemDefault()).toEpochSecond())
+                .build();
+    }
 }

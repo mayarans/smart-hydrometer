@@ -28,4 +28,10 @@ public class Flow {
         }
     }
 
+    public record Stats(
+            Double avg,
+            Double std,
+            Double min,
+            Double max
+    ){}
 }
