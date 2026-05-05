@@ -27,11 +27,4 @@ public class Flow {
             throw new PhysicalInconsistencyException("Flow can't be lower than 0");
         }
     }
-
-    public record Stats(
-            Double avg,
-            Double std,
-            Double min,
-            Double max
-    ){}
 }
