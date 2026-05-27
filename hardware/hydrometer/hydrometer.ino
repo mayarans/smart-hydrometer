@@ -13,17 +13,21 @@ const uint8_t pin_flow_sensor = 4;
 const uint8_t pin_level_sensor = 5;
 const uint8_t pin_valve_actuator = 6;
 
-int pulses_cont = 0;
+volatile int pulses_cont = 0;
 double flow;
-uint8_t has_water, is_valve_open;
+volatile uint8_t has_water, is_valve_open;
 hw_timer_t *send_data_timer = NULL;
+volatile bool should_send_data = false;
+portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 
 WiFiClient espClient;
 PubSubClient client(espClient);
 
 
 void IRAM_ATTR  increasePulseCont(){
+  portENTER_CRITICAL_ISR(&mux);
   pulses_cont++;
+  portEXIT_CRITICAL_ISR(&mux);
 }
 
 void IRAM_ATTR changeValveState() {
@@ -32,40 +36,12 @@ void IRAM_ATTR changeValveState() {
 }
 
 void IRAM_ATTR onSendDataTimeout() {
-  readData();
-  
-  if (!client.connected()) {
-    return;
-  }
-
-  time_t now = time(NULL);
-
-  StaticJsonDocument<200> doc;
-  doc["deviceId"] = id;
-  doc["flow"] = flow;
-  doc["hasWater"] = has_water;
-  doc["isValveOpen"] = is_valve_open;
-  doc["timestampInSeconds"] = now;
-
-  char buffer[256];
-  serializeJson(doc, buffer);
-
-  boolean ok = client.publish("topic.flow", buffer);
+  should_send_data = true;
 }
 
 void setupMQTT() {
   client.setServer(mqtt_server, 1883);
-
-  while (!client.connected()) {
-    if (client.connect("ESP32Client")) {
-      Serial.println(" conectado]");
-    } else {
-      Serial.print(" erro=");
-      Serial.print(client.state());
-      Serial.println("]");
-      delay(2000);
-    }
-  }
+  client.connect(id);
 }
 
 void setupTime() {
@@ -105,9 +81,30 @@ void setupTimer(){
 }
 
 void readData(){
-  double pulse_frequency = 1/pulses_cont;
-  flow = pulse_frequency/7.5;
+  portENTER_CRITICAL(&mux);
+  flow = pulses_cont/7.5;
   pulses_cont = 0;
+  portEXIT_CRITICAL(&mux);
+}
+
+void sendData(){
+  if (!client.connected()) {
+    return;
+  }
+
+  time_t now = time(NULL);
+
+  JsonDocument doc;
+  doc["deviceId"] = id;
+  doc["flow"] = flow;
+  doc["hasWater"] = has_water;
+  doc["isValveOpen"] = is_valve_open;
+  doc["timestampInSeconds"] = now;
+
+  char buffer[256];
+  serializeJson(doc, buffer);
+
+  boolean ok = client.publish("topic.flow", buffer);
 }
 
 void setup() {
@@ -130,6 +127,12 @@ void loop() {
     setupMQTT();
   }
 
+  if(should_send_data){
+    should_send_data = false;
+    readData();
+    sendData();
+  }
+
   client.loop();
-  delay(500);
+  delay(50);
 }
