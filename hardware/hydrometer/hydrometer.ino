@@ -64,8 +64,8 @@ void connectWifi() {
 }
 
 void setupPins(){
-  pinMode(pin_flow_sensor, INPUT_PULLDOWN);
-  attachInterrupt(digitalPinToInterrupt(pin_flow_sensor), increasePulseCont, RISING);
+  pinMode(pin_flow_sensor, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(pin_flow_sensor), increasePulseCont, FALLING);
 
   pinMode(pin_level_sensor, INPUT_PULLDOWN);
   attachInterrupt(digitalPinToInterrupt(pin_level_sensor), changeValveState, CHANGE);
