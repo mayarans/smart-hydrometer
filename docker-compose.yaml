@@ -39,7 +39,10 @@ services:
       - "8080:8080"
     environment:
       - SPRING_ELASTICSEARCH_URIS=http://elasticsearch:9200
+      - FASTAPI_URL=http://host.docker.internal:8000/sensor/analisar-fluxo
       - SPRING_MQTT_URL=tcp://mosquitto:1883
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - monitoramento-network
 
